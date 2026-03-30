@@ -6,7 +6,7 @@
 <style>
   body {
     margin: 0;
-    background: #000;
+    background: #000000;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -16,11 +16,14 @@
   }
   canvas {
     display: block;
+    opacity: 0;
   }
 </style>
 </head>
 <body>
+
 <canvas id="fogCanvas" width="700" height="700"></canvas>
+
 <script>
 const canvas = document.getElementById('fogCanvas');
 const ctx = canvas.getContext('2d');
@@ -28,13 +31,119 @@ const ctx = canvas.getContext('2d');
 const width = canvas.width;
 const height = canvas.height;
 
-// Testo invisibile che genera il "vapore"
-const text = `the book is only a sort of optical instrument which the writer offers to the reader`;
-const textArray = text.split("100"); // QUI AGISCI BENE SULLA DENSITA DELLA MACCHIA TESTUALE
+// =====================
+// DEVICE DETECTION
+// =====================
+const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
 
-// Particelle che attraversano il campo
+// =====================
+// TESTO
+// =====================
+const text = `the book is only a sort of optical instrument which the writer offers to the reader`;
+const textArray = text.split("100");
+
+// =====================
+// PARTICLES
+// =====================
 const numParticles = 500;
 const particles = [];
+
+class Particle {
+    constructor() {
+        this.reset();
+    }
+    reset() {
+        this.x = Math.random() * width * 0.05;
+        this.y = Math.random() * height;
+        this.vx = (Math.random() - 0.5) * 0.9;
+        this.vy = (Math.random() - 0.5) * 0.5;
+        this.trace = [];
+    }
+    move() {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if(this.x < 0) this.x = width;
+        if(this.x > width) this.x = 0;
+        if(this.y < 0) this.y = height;
+        if(this.y > height) this.y = 0;
+
+        this.trace.push({x: this.x, y: this.y});
+        if(this.trace.length > 10) this.trace.shift();
+    }
+    draw() {
+        for(let i=0; i<this.trace.length; i++) {
+            const p = this.trace[i];
+            const alpha = i / this.trace.length * 0.5;
+            ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+            ctx.fillText(
+                textArray[Math.floor(Math.random()*textArray.length)],
+                p.x,
+                p.y
+            );
+        }
+    }
+}
+
+// init
+for(let i=0; i<numParticles; i++) {
+    particles.push(new Particle());
+}
+
+// =====================
+// ANIMATION CONTROL
+// =====================
+let started = false;
+
+function startExperience(){
+    if(started) return;
+    started = true;
+
+    canvas.style.opacity = 1;
+    draw();
+}
+
+// =====================
+// DRAW LOOP
+// =====================
+function draw() {
+    ctx.fillStyle = "rgba(0,0,0,0.1)";
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.font = "14px monospace";
+
+    particles.forEach(p => {
+        p.move();
+        p.draw();
+    });
+
+    requestAnimationFrame(draw);
+}
+
+// =====================
+// INTERACTIONS
+// =====================
+
+if(!isTouchDevice){
+
+  // DESKTOP → ingresso nella canvas + click fallback
+  canvas.addEventListener("pointerenter", startExperience, {once:true});
+  window.addEventListener("click", startExperience, {once:true});
+
+} else {
+
+  // TOUCH → solo primo tocco
+  canvas.addEventListener("touchstart", (e)=>{
+    e.preventDefault();
+    startExperience();
+  }, {once:true, passive:false});
+
+}
+
+</script>
+
+</body>
+</html>const particles = [];
 
 class Particle {
     constructor() {
